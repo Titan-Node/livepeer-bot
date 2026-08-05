@@ -10,7 +10,7 @@ Before publishing, replace the placeholders (search for `data-todo`):
 |---|---|
 | ~~`contract-address`~~ | DONE — `0x2F5901C6D8EB0181FA4f2b75EAAd0344a916fdDE` |
 | ~~`repo-url`~~ | DONE — https://github.com/Titan-Node/livepeer-bot |
-| ~~`explorer-contract-url`~~ | DONE — Blockscout verified-source page |
+| ~~`explorer-contract-url`~~ | DONE — Arbiscan + Blockscout verified-source pages |
 | ~~`write-contract-url`~~ | DONE — BondingManager write-proxy on Blockscout |
 | ~~`keeper-script-url` / `keeper-docs-url`~~ | DONE — repo `/keeper` links |
 | `chainlink-upkeep-id` | Chainlink Automation upkeep ID |

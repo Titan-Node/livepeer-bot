@@ -53,7 +53,9 @@ cast send 0x35Bcf3c30594191d53231E4FF333E8A770453e40 \
 Then put your key back in the freezer. That's it.
 
 > Deployed 2026-08-05: **`0x2F5901C6D8EB0181FA4f2b75EAAd0344a916fdDE`** on Arbitrum One
-> ([verified source on Blockscout](https://arbitrum.blockscout.com/address/0x2F5901C6D8EB0181FA4f2b75EAAd0344a916fdDE?tab=contract),
+> (verified source on
+> [Arbiscan](https://arbiscan.io/address/0x2F5901C6D8EB0181FA4f2b75EAAd0344a916fdDE#code) and
+> [Blockscout](https://arbitrum.blockscout.com/address/0x2F5901C6D8EB0181FA4f2b75EAAd0344a916fdDE?tab=contract),
 > deploy tx `0x62f18d3882a2681b67946a538614b21a1a83886b17f72ea2c7e0f1029fed465d`).
 > Canary run pending; forum announcement after that.
 
