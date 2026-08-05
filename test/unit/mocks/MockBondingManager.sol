@@ -39,8 +39,12 @@ contract MockBondingManager is IBondingManager {
         RevertCustom, // revert with a custom error
         RevertEmpty, // revert with empty data
         GasBomb, // consume ALL forwarded gas (infinite loop)
-        BurnThenSucceed // burn a configured amount of gas, then succeed
+        BurnThenSucceed, // burn a configured amount of gas, then succeed
+        RevertHuge // revert with a HUGE_REVERT_SIZE payload (audit #565 finding 1 regression)
     }
+
+    /// @notice Size of the RevertHuge payload — far beyond MAX_REVERT_DATA_BYTES.
+    uint256 public constant HUGE_REVERT_SIZE = 8192;
 
     error RewardBroken(address transcoder, uint256 code);
 
@@ -140,6 +144,16 @@ contract MockBondingManager is IBondingManager {
             }
         }
         if (mode == FailureMode.BurnThenSucceed) _burnGas(_burnAmount[_transcoder]);
+        if (mode == FailureMode.RevertHuge) {
+            // Deterministic byte pattern so tests can assert the exact truncated prefix.
+            bytes memory big = new bytes(HUGE_REVERT_SIZE);
+            for (uint256 i; i < big.length; ++i) {
+                big[i] = bytes1(uint8(i));
+            }
+            assembly ("memory-safe") {
+                revert(add(big, 0x20), mload(big))
+            }
+        }
 
         rewardCalls.push(
             RewardCall({

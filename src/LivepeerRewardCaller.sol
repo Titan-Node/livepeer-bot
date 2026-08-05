@@ -76,8 +76,9 @@ contract LivepeerRewardCaller {
     error RoundNotInitializable(bytes reason);
     /// @notice rewardFor array arguments differ in length.
     error LengthMismatch();
-    /// @notice The tx could not afford even ONE reward attempt (gas below the per-iteration
-    ///         floor before anything was processed). Raise the gas limit; without this revert,
+    /// @notice The tx could not afford even ONE reward attempt (gas fell below the
+    ///         per-iteration floor before any attempt was made — scanning skippable pool nodes
+    ///         does not count as progress). Raise the gas limit; without this revert,
     ///         estimation-sized gas limits could produce silent zero-progress transactions.
     error InsufficientGas();
 
@@ -122,10 +123,19 @@ contract LivepeerRewardCaller {
     uint256 public constant BASE_CALL_GAS = 1_500_000;
     uint256 public constant PER_NODE_MARGIN = 10_000;
 
-    /// @notice Gas retained (not forwarded to the reward call) for pre-checks already spent,
-    ///         result events, and loop bookkeeping. Forwarding is CAPPED at floor - RESERVE so a
-    ///         pathologically expensive item burns a bounded amount and the sweep continues past it.
+    /// @notice Base gas retained (not forwarded to the reward call) for pre-checks already
+    ///         spent, result events, and loop bookkeeping. The effective reserve scales with the
+    ///         gas floor (`CALL_GAS_RESERVE + gasFloor/64`) so the explicit gas request stays
+    ///         grantable under EIP-150's 63/64 rule even if governance grows the pool far beyond
+    ///         today's cap. Forwarding is CAPPED at floor - reserve so a pathologically expensive
+    ///         item burns a bounded amount and the sweep continues past it.
     uint256 public constant CALL_GAS_RESERVE = 150_000;
+
+    /// @notice Revert payloads from a failed reward call are truncated to this many bytes before
+    ///         being emitted in RewardCallFailed. Enough for any error selector or Error(string)
+    ///         prefix; prevents a hostile/drifted callee from OOG-ing the catch path with a huge
+    ///         payload and reverting the whole sweep.
+    uint256 public constant MAX_REVERT_DATA_BYTES = 256;
 
     // ---------------------------------------------------------------- constructor
 
@@ -167,7 +177,9 @@ contract LivepeerRewardCaller {
                 break;
             }
             if (gasleft() < gasFloor) {
-                if (processed == 0) revert InsufficientGas();
+                // Attempts are the progress that matters: scanning skippable nodes must not
+                // mask a tx that can never afford a reward call (audit #565, finding 2).
+                if (rewarded + failed == 0) revert InsufficientGas();
                 complete = false;
                 break;
             }
@@ -198,9 +210,12 @@ contract LivepeerRewardCaller {
     ///         hints ((address(0), address(0)) = hintless for that item). Permissionless.
     /// @dev    Hints are forwarded verbatim and unvalidated: the BondingManager validates hint
     ///         positions itself and degrades gracefully to a list walk, so a wrong hint at worst
-    ///         costs the hintless price for that one item. Duplicates and already-rewarded entries
-    ///         are silently skipped (idempotent). Empty arrays are a valid "just initialize the
-    ///         round" call.
+    ///         costs the hintless price for that one item. Already-rewarded entries are silently
+    ///         skipped, so duplicates of a SUCCESSFUL entry are idempotent — but a duplicate whose
+    ///         first attempt FAILED is re-attempted, emitting one RewardCallFailed per occurrence
+    ///         (dedupe client-side if that matters for your alerting; failures here should be
+    ///         protocol-drift-rare anyway). Empty arrays are a valid "just initialize the round"
+    ///         call.
     /// @param _minGasPerCall Raises (never lowers) the per-iteration gas floor.
     /// @return rewarded  Successful reward calls.
     /// @return failed    Reward calls that reverted after passing pre-checks.
@@ -221,7 +236,7 @@ contract LivepeerRewardCaller {
 
         for (uint256 i; i < len; ++i) {
             if (gasleft() < gasFloor) {
-                if (processed == 0) revert InsufficientGas();
+                if (rewarded + failed == 0) revert InsufficientGas();
                 break;
             }
             address t = _transcoders[i];
@@ -387,19 +402,40 @@ contract LivepeerRewardCaller {
     }
 
     /// @dev One guarded reward call. Gas forwarding is CAPPED (never the 63/64 default) so a
-    ///      pathologically expensive item burns at most gasFloor - CALL_GAS_RESERVE, gets caught,
-    ///      and the sweep continues past it. The try/catch also absorbs subcall OOG.
+    ///      pathologically expensive item burns at most gasFloor - reserve, gets caught, and the
+    ///      sweep continues past it. The reserve scales with the floor so the explicit gas
+    ///      request is always actually grantable under EIP-150 (audit #565, finding 4). A raw
+    ///      call + bounded revert-data copy replaces try/catch so a huge revert payload cannot
+    ///      OOG the failure path and revert the whole sweep (audit #565, finding 1). Failures
+    ///      (incl. subcall OOG) are absorbed either way; pre-check [a] runs a typed staticcall
+    ///      against the same target first, so a codeless target hard-reverts the entrypoint
+    ///      before this vacuous-success path could ever be reached.
     function _attemptReward(IBondingManager bm, address t, uint256 round, uint256 gasFloor, address prevHint, address nextHint)
         private
         returns (bool ok)
     {
-        uint256 fwd = gasFloor - CALL_GAS_RESERVE;
+        uint256 fwd = gasFloor - (CALL_GAS_RESERVE + gasFloor / 64);
         uint256 g0 = gasleft();
-        try bm.rewardForTranscoderWithHint{gas: fwd}(t, prevHint, nextHint) {
+        (ok,) = address(bm).call{gas: fwd}(
+            abi.encodeCall(IBondingManager.rewardForTranscoderWithHint, (t, prevHint, nextHint))
+        );
+        if (ok) {
             emit RewardCallSucceeded(round, t, msg.sender, g0 - gasleft());
-            ok = true;
-        } catch (bytes memory reason) {
-            emit RewardCallFailed(round, t, msg.sender, reason);
+        } else {
+            emit RewardCallFailed(round, t, msg.sender, _boundedRevertData());
+        }
+    }
+
+    /// @dev Copy at most MAX_REVERT_DATA_BYTES of the last call's revert data. Must run before
+    ///      any other external call clobbers the returndata buffer.
+    function _boundedRevertData() private pure returns (bytes memory data) {
+        assembly ("memory-safe") {
+            let size := returndatasize()
+            if gt(size, 256) { size := 256 } // keep literal in sync with MAX_REVERT_DATA_BYTES
+            data := mload(0x40)
+            mstore(data, size)
+            returndatacopy(add(data, 0x20), 0, size)
+            mstore(0x40, add(add(data, 0x20), and(add(size, 0x1f), not(0x1f))))
         }
     }
 

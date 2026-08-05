@@ -114,6 +114,18 @@ Verified against the live LIP-118 deployment on Arbitrum One: BondingManager tar
 `0xbe197fcBfe74DE8F10460EA61644B006cC0f0Bd2` (protocol commit `ccc82f43`), registered at
 block 489,354,275 behind proxy `0x35Bcf3c30594191d53231E4FF333E8A770453e40`.
 
+## Audits & review
+
+- Multi-agent adversarial review (pre-audit, 22 agents): confirmed findings — mid-round
+  eviction blind spot, estimation-stall semantics, drift-branch coverage — all fixed and
+  regression-tested.
+- [OneDollarAudit #565](audits/2026-08-05-onedollaraudit-565.md) (2026-08-05, automated): no
+  critical/high findings; 2 medium + 2 low, all fixed or documented — see the response doc for
+  the finding-by-finding disposition and regression tests.
+
+No third-party human audit yet; the contract is small (~450 lines) and deliberately boring —
+read it.
+
 ## Deployment checklist
 
 1. Full unit + fork suites green at a current pinned block; empirical gas table reviewed
