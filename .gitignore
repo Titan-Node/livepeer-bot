@@ -21,3 +21,4 @@ keeper/.venv/
 
 # local orchestrator keystores - NEVER commit
 keystore/
+keeper/run_local.bat
