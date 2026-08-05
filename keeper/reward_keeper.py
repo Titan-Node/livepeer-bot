@@ -782,7 +782,11 @@ def send_and_wait(chain: Chain, cfg: Cfg, ctx: Ctx, notifier: Notifier, wallet: 
         h = w3.eth.send_raw_transaction(_raw_tx(signed)).hex()
         return (h if h.startswith("0x") else "0x" + h), n, tx
 
-    gas_price = chain.call(lambda w3: w3.eth.gas_price)
+    # eth_gasPrice tracks the CURRENT block's base fee with no headroom; Arbitrum's dynamic
+    # pricing can tick the base fee up between quote and inclusion, and the node then rejects
+    # the tx outright ("max fee per gas less than block base fee"). Quote +25%: on Arbitrum a
+    # legacy tx is only ever charged the actual base fee, so the headroom costs nothing.
+    gas_price = int(chain.call(lambda w3: w3.eth.gas_price) * 5 // 4) + 1
     tx_hash, nonce, _ = chain.call(lambda w3: build_and_send(w3, gas_price, None))
     ctx.txs.append(tx_hash)
     info(f"sent tx {tx_hash} (nonce {nonce}, gas {gas_limit}, gasPrice {gas_price}, wallet {wallet.name})")
