@@ -15,3 +15,6 @@ docs/
 
 # local agent settings
 .claude/
+keeper/config.toml
+keeper/keeper_state.json
+keeper/.venv/
