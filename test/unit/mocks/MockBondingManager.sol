@@ -43,8 +43,20 @@ contract MockBondingManager is IBondingManager {
         RevertHuge // revert with a HUGE_REVERT_SIZE payload (audit #565 finding 1 regression)
     }
 
-    /// @notice Size of the RevertHuge payload — far beyond MAX_REVERT_DATA_BYTES.
+    /// @notice Default size of the RevertHuge payload — far beyond MAX_REVERT_DATA_BYTES.
     uint256 public constant HUGE_REVERT_SIZE = 8192;
+    /// @dev Appended state (does not disturb the slot 0/1/2 trace-layout contract).
+    uint256 internal _hugeRevertSize;
+    uint256 internal _poolSizeOverride;
+
+    function setHugeRevertSize(uint256 _sz) external {
+        _hugeRevertSize = _sz;
+    }
+
+    /// @notice Report an inflated pool size (floor math) while the walkable list stays small.
+    function setPoolSizeOverride(uint256 _sz) external {
+        _poolSizeOverride = _sz;
+    }
 
     error RewardBroken(address transcoder, uint256 code);
 
@@ -109,7 +121,7 @@ contract MockBondingManager is IBondingManager {
 
     function getTranscoderPoolSize() external view returns (uint256) {
         if (_poisonViews) revert("POISONED_VIEW");
-        return _poolSize;
+        return _poolSizeOverride == 0 ? _poolSize : _poolSizeOverride;
     }
 
     function getFirstTranscoderInPool() external view returns (address) {
@@ -145,13 +157,15 @@ contract MockBondingManager is IBondingManager {
         }
         if (mode == FailureMode.BurnThenSucceed) _burnGas(_burnAmount[_transcoder]);
         if (mode == FailureMode.RevertHuge) {
-            // Deterministic byte pattern so tests can assert the exact truncated prefix.
-            bytes memory big = new bytes(HUGE_REVERT_SIZE);
-            for (uint256 i; i < big.length; ++i) {
-                big[i] = bytes1(uint8(i));
-            }
+            // Word-pattern fill (byte i == i % 32) so the payload can be hundreds of KB while
+            // staying cheap enough to build inside the capped forwarded gas; tests assert the
+            // exact truncated prefix against the i % 32 pattern.
+            uint256 sz = _hugeRevertSize == 0 ? HUGE_REVERT_SIZE : _hugeRevertSize;
             assembly ("memory-safe") {
-                revert(add(big, 0x20), mload(big))
+                let p := mload(0x40)
+                let pat := 0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
+                for { let o := 0 } lt(o, sz) { o := add(o, 0x20) } { mstore(add(p, o), pat) }
+                revert(p, sz)
             }
         }
 

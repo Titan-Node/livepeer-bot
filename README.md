@@ -122,8 +122,13 @@ block 489,354,275 behind proxy `0x35Bcf3c30594191d53231E4FF333E8A770453e40`.
 - [OneDollarAudit #565](audits/2026-08-05-onedollaraudit-565.md) (2026-08-05, automated): no
   critical/high findings; 2 medium + 2 low, all fixed or documented — see the response doc for
   the finding-by-finding disposition and regression tests.
+- [OneDollarAudit #567](audits/2026-08-05-onedollaraudit-567.md) (2026-08-05, automated
+  re-audit at pinned commit `8e5bac59…`): 1 high (latent availability: gas-floor growth could
+  brick the service in a far-future giant pool — fixed with `MAX_GAS_FLOOR`), plus fixes for the
+  implicit returndata copy and a `Deployed` fingerprint event; reentrancy-guard and
+  dynamic-forwarding suggestions rejected with reasons on record.
 
-No third-party human audit yet; the contract is small (~450 lines) and deliberately boring —
+No third-party human audit yet; the contract is small (~470 lines) and deliberately boring —
 read it.
 
 ## Deployment checklist

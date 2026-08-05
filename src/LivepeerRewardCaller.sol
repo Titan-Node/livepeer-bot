@@ -72,7 +72,9 @@ contract LivepeerRewardCaller {
     /// @notice The Livepeer protocol is paused; nothing can be rewarded.
     error SystemPaused();
     /// @notice The current round is not initialized and initializeRound() reverted.
-    /// @param reason Raw revert data from RoundsManager.initializeRound().
+    /// @param reason Raw revert data from RoundsManager.initializeRound(). An EMPTY reason
+    ///        usually means the initializeRound subcall itself ran out of gas (the caller
+    ///        under-provisioned the tx) — raise the gas limit before suspecting protocol drift.
     error RoundNotInitializable(bytes reason);
     /// @notice rewardFor array arguments differ in length.
     error LengthMismatch();
@@ -96,6 +98,11 @@ contract LivepeerRewardCaller {
     ///         event indicates protocol drift or an unexpected state edge — alert on it.
     /// @param revertData Raw revert payload (Error(string), custom error, or empty for OOG).
     event RewardCallFailed(uint256 indexed round, address indexed transcoder, address indexed caller, bytes revertData);
+
+    /// @notice One-time deployment fingerprint: the registry this instance is permanently bound
+    ///         to and the managers it resolved at construction — on-chain verifiability that the
+    ///         immutable binding targets the canonical Livepeer deployment (audit #567, finding 6).
+    event Deployed(address indexed controller, address bondingManager, address roundsManager);
 
     /// @notice Exactly one per rewardAll/rewardFor invocation — the keeper's resume/stop signal.
     /// @param processed Pool nodes scanned (rewardAll) or array items consumed (rewardFor).
@@ -123,6 +130,14 @@ contract LivepeerRewardCaller {
     uint256 public constant BASE_CALL_GAS = 1_500_000;
     uint256 public constant PER_NODE_MARGIN = 10_000;
 
+    /// @notice Ceiling on the AUTOMATIC gas floor. Without it, pool growth past ~3,050 members
+    ///         would push the floor beyond Arbitrum's 32M per-tx cap and every call would revert
+    ///         unconditionally — permanently bricking an immutable contract (audit #567,
+    ///         finding 1). 20M still forwards ~19.5M to a single reward call, which covers a
+    ///         hintless tail reward even in a ~3,000-node pool. The caller-supplied
+    ///         `_minGasPerCall` may still raise the floor above this ceiling explicitly.
+    uint256 public constant MAX_GAS_FLOOR = 20_000_000;
+
     /// @notice Base gas retained (not forwarded to the reward call) for pre-checks already
     ///         spent, result events, and loop bookkeeping. The effective reserve scales with the
     ///         gas floor (`CALL_GAS_RESERVE + gasFloor/64`) so the explicit gas request stays
@@ -143,9 +158,11 @@ contract LivepeerRewardCaller {
     constructor(IController _controller) {
         if (address(_controller) == address(0)) revert ZeroAddress();
         // Deploy-time sanity check: both registry ids must resolve (catches wrong-network deploys).
-        if (_controller.getContract(BONDING_MANAGER_ID) == address(0)) revert ZeroAddress();
-        if (_controller.getContract(ROUNDS_MANAGER_ID) == address(0)) revert ZeroAddress();
+        address bm = _controller.getContract(BONDING_MANAGER_ID);
+        address rm = _controller.getContract(ROUNDS_MANAGER_ID);
+        if (bm == address(0) || rm == address(0)) revert ZeroAddress();
         CONTROLLER = _controller;
+        emit Deployed(address(_controller), bm, rm);
     }
 
     // ---------------------------------------------------------------- write layer
@@ -272,7 +289,9 @@ contract LivepeerRewardCaller {
     ///         or a pool-set diff), confirm via `filterPendingRewardCalls`, and rescue via
     ///         `rewardFor`. Note: at the top of a fresh round (before initialization) this
     ///         correctly lists the full subscribed set; rewardAll/rewardFor initialize the round
-    ///         themselves.
+    ///         themselves. In a far-future giant pool this O(poolSize) walk could exceed an RPC's
+    ///         eth_call gas cap — prefer RewardCallerSet event discovery plus batched
+    ///         `filterPendingRewardCalls` (the documented keeper recipe already does exactly that).
     function getPendingRewardCalls() external view returns (address[] memory pending) {
         IBondingManager bm = _bondingManager();
         uint256 round = _roundsManager().currentRound();
@@ -373,11 +392,14 @@ contract LivepeerRewardCaller {
         }
     }
 
-    /// @dev Per-iteration gas floor: max(caller-raised, pool-size-aware term, hard minimum).
-    ///      Clamp-up-only — no caller can lower it to induce misattributed OOG failures.
+    /// @dev Per-iteration gas floor: max(caller-raised, pool-size-aware term, hard minimum),
+    ///      with the automatic part capped at MAX_GAS_FLOOR so pool growth can never make the
+    ///      floor unsatisfiable under Arbitrum's per-tx gas cap. Clamp-up-only — no caller can
+    ///      lower it to induce misattributed OOG failures.
     function _effectiveGasFloor(IBondingManager bm, uint256 _minGasPerCall) private view returns (uint256 gasFloor) {
         gasFloor = BASE_CALL_GAS + bm.getTranscoderPoolSize() * PER_NODE_MARGIN;
         if (gasFloor < MIN_CALL_GAS) gasFloor = MIN_CALL_GAS;
+        if (gasFloor > MAX_GAS_FLOOR) gasFloor = MAX_GAS_FLOOR;
         if (gasFloor < _minGasPerCall) gasFloor = _minGasPerCall;
     }
 
@@ -416,9 +438,15 @@ contract LivepeerRewardCaller {
     {
         uint256 fwd = gasFloor - (CALL_GAS_RESERVE + gasFloor / 64);
         uint256 g0 = gasleft();
-        (ok,) = address(bm).call{gas: fwd}(
-            abi.encodeCall(IBondingManager.rewardForTranscoderWithHint, (t, prevHint, nextHint))
-        );
+        // Assembly call with a ZERO-LENGTH output buffer: a high-level `(ok,) = .call(...)`
+        // would still materialize the callee's full returndata in this frame before discarding
+        // it, so a multi-hundred-KB revert bomb could OOG us on memory expansion despite the
+        // bounded copy below (audit #567, finding 3). This way _boundedRevertData() is the ONLY
+        // copy that ever happens.
+        bytes memory payload = abi.encodeCall(IBondingManager.rewardForTranscoderWithHint, (t, prevHint, nextHint));
+        assembly ("memory-safe") {
+            ok := call(fwd, bm, 0, add(payload, 0x20), mload(payload), 0, 0)
+        }
         if (ok) {
             emit RewardCallSucceeded(round, t, msg.sender, g0 - gasleft());
         } else {

@@ -92,8 +92,68 @@ contract AuditRegressionsTest is UnitBase {
         }
         assertEq(emitted.length, 256, "revertData truncated to MAX_REVERT_DATA_BYTES");
         for (uint256 i; i < 256; ++i) {
-            assertEq(uint8(emitted[i]), uint8(i), "truncated prefix preserved verbatim");
+            assertEq(uint8(emitted[i]), uint8(i % 32), "truncated prefix preserved verbatim");
         }
+    }
+
+    // ================================================== audit #567 regressions
+
+    /// @dev Finding 1: without MAX_GAS_FLOOR, a ~5,000-member pool implies a 51.5M floor —
+    ///      unsatisfiable under Arbitrum's 32M tx cap, permanently bricking every call. With
+    ///      the cap, a 20.5M tx still serves subscribers.
+    function test_GasFloorCapped_GiantPoolCannotBrickService() public {
+        assertEq(rc.MAX_GAS_FLOOR(), 20_000_000);
+
+        address good = address(0x5101);
+        _addGood(good, 100);
+        bm.setPoolSizeOverride(5_000); // floor math sees a giant pool; the walk stays tiny
+
+        (uint256 rewarded, uint256 failed, bool complete) = rc.rewardAll{gas: 20_500_000}(0, 0);
+        assertEq(rewarded, 1, "capped floor keeps a giant-pool service alive");
+        assertEq(failed, 0);
+        assertTrue(complete);
+
+        // Clamp-up above the ceiling is still the caller's prerogative (and their own risk):
+        _freshDeploy();
+        _addGood(good, 100);
+        bm.setPoolSizeOverride(5_000);
+        vm.expectRevert(LivepeerRewardCaller.InsufficientGas.selector);
+        rc.rewardAll{gas: 20_500_000}(0, 21_000_000);
+    }
+
+    /// @dev Finding 3: a ~400KB revert bomb whose IMPLICIT returndata copy (high-level `.call`)
+    ///      would OOG the frame despite the bounded emit. The assembly zero-output-buffer call
+    ///      makes _boundedRevertData the only copy, so the sweep survives.
+    function test_MassiveRevertBomb_NoImplicitCopyOOG_SweepContinues() public {
+        address g1 = address(0x5201);
+        address bomb = address(0x5202);
+        address g2 = address(0x5203);
+        _addGood(g1, 300);
+        _addGood(bomb, 200);
+        _addGood(g2, 100);
+        bm.setFailureMode(bomb, MockBondingManager.FailureMode.RevertHuge);
+        bm.setHugeRevertSize(400_000);
+
+        vm.recordLogs();
+        (uint256 rewarded, uint256 failed, bool complete) = rc.rewardAll(0, 0);
+        assertEq(rewarded, 2, "sweep survives a 400KB revert bomb");
+        assertEq(failed, 1);
+        assertTrue(complete);
+
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        for (uint256 i; i < logs.length; ++i) {
+            if (logs[i].topics[0] == SIG_FAILED) {
+                bytes memory emitted = abi.decode(logs[i].data, (bytes));
+                assertEq(emitted.length, 256, "still truncated to MAX_REVERT_DATA_BYTES");
+            }
+        }
+    }
+
+    /// @dev Finding 6: construction fingerprints the registry binding on-chain.
+    function test_DeployedEvent_FingerprintsRegistryBinding() public {
+        vm.expectEmit(true, true, true, true);
+        emit LivepeerRewardCaller.Deployed(address(controller), address(bm), address(rounds));
+        new LivepeerRewardCaller(controller);
     }
 
     // ------------------------------------------------ finding 4: reserve scales with the floor
