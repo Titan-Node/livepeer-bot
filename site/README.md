@@ -13,10 +13,10 @@ Before publishing, replace the placeholders (search for `data-todo`):
 | ~~`explorer-contract-url`~~ | DONE — Arbiscan + Blockscout verified-source pages |
 | ~~`write-contract-url`~~ | DONE — BondingManager write-proxy on Blockscout |
 | ~~`keeper-script-url` / `keeper-docs-url`~~ | DONE — repo `/keeper` links |
-| `chainlink-upkeep-id` | Chainlink Automation upkeep ID |
+| ~~`chainlink-upkeep-id`~~ | OBSOLETE — Chainlink Automation sunset (July 2026) before launch; row replaced with backstop-status text |
 | `keeper-donation-address` | keeper gas-wallet EOA |
 
-The `cast` command address tokens are filled. Remaining `soon` badges: the two rows above.
+The `cast` command address tokens are filled. Remaining `soon` badge: the donation row.
 
 ## Option A — ENS + IPFS (`livepeerbot.eth` → `livepeerbot.eth.limo`)
 
