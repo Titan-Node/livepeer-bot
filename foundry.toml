@@ -1,0 +1,30 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+solc_version = "0.8.24"
+evm_version = "shanghai"
+optimizer = true
+optimizer_runs = 10000
+via_ir = true
+test = "test/unit"
+
+[profile.default.fuzz]
+runs = 512
+
+# Fork tests run against the real deployed LIP-118 BondingManager on Arbitrum One.
+# Requires network access; RPC defaults to a public endpoint, override with ARBITRUM_RPC_URL.
+#   forge test --profile fork
+[profile.fork]
+src = "src"
+out = "out"
+libs = ["lib"]
+solc_version = "0.8.24"
+evm_version = "shanghai"
+optimizer = true
+optimizer_runs = 10000
+via_ir = true
+test = "test/fork"
+
+[fmt]
+line_length = 120

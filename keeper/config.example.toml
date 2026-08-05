@@ -1,0 +1,97 @@
+# reward_keeper configuration — copy to config.toml and edit.
+# Secrets NEVER live in this file: every credential is named here as the ENV VAR
+# that holds it (primary_key_env, pass_env, bot_token_env, ...).
+
+# Ordered RPC list — tried top to bottom, rotated on transport failure.
+# Override with env KEEPER_RPC_URLS (comma-separated).
+rpc_urls = [
+  "https://arb1.arbitrum.io/rpc",
+  "https://arbitrum.drpc.org",
+  "https://1rpc.io/arb",
+]
+
+# The deployed LivepeerRewardCaller. PLACEHOLDER — replace after deployment.
+# Override with env KEEPER_REWARD_CALLER.
+reward_caller = "0x0000000000000000000000000000000000000000"  # TODO: deployed address
+
+# Livepeer Controller on Arbitrum One (registry + pause switch). Leave as is.
+controller = "0xD8E8328501E9645d16Cf49539efC04f734606ee4"
+
+# Sentinel mode: 0.0 = act immediately. 0.25 = only act if reward calls are still
+# pending after 25% of the round has passed (recommended when a Chainlink upkeep
+# or another keeper is the primary layer and this keeper is the backstop).
+sentinel_delay_fraction = 0.0
+
+# Hard cap on txs this keeper will send per Livepeer round (across invocations).
+max_txs_per_round = 10
+
+# Where incremental scan progress, the subscriber map, and alert-dedup live.
+# Override with env KEEPER_STATE_FILE.
+state_file = "keeper_state.json"
+
+# true = simulate everything, send nothing. Override with env KEEPER_DRY_RUN=1.
+dry_run = false
+
+# Optional healthchecks.io-style ping: GET on success, GET <url>/fail on failure.
+# A dead keeper cannot self-report — this is the watchdog that notices silence.
+# healthcheck_ping_url = "https://hc-ping.com/your-uuid-here"
+
+# Optional: addresses ALWAYS included as reward candidates, in addition to the
+# ones discovered from RewardCallerSet logs. Useful on fresh forks / tests where
+# historic logs are unavailable. Harmless if not actually subscribed.
+subscribers_static = []
+
+# First block of the RewardCallerSet log scan on the very first run.
+# Default = LIP-118 registration block on Arbitrum One. On an anvil fork set this
+# to the fork block (anvil only serves logs from the fork point forward).
+initial_scan_from_block = 489354275
+
+[wallet]
+# Option A (simplest): raw hex private key in an env var.
+primary_key_env = "KEEPER_PRIMARY_KEY"
+# Option B: geth/UTC keystore file + its password in an env var (uncomment both).
+# primary_keystore = "/path/to/primary.keystore.json"
+# primary_keystore_pass_env = "KEEPER_PRIMARY_PASS"
+
+# Optional backup gas wallet, used automatically when the primary can't afford a tx.
+backup_key_env = "KEEPER_BACKUP_KEY"
+# backup_keystore = "/path/to/backup.keystore.json"
+# backup_keystore_pass_env = "KEEPER_BACKUP_PASS"
+
+# Balance policy (wei). warn: daily-deduped warning. failover: switch to backup
+# (the effective failover threshold is max(failover_wei, 25M gas * gasPrice * 1.5)).
+warn_wei = 10000000000000000     # 0.01 ETH
+failover_wei = 2000000000000000  # 0.002 ETH
+
+[smtp]
+# Optional email alerts. Best-effort: failures are logged, never fatal.
+# host = "smtp.example.com"
+# port = 587                  # 587 = STARTTLS, 465 = implicit SSL
+# user = "keeper@example.com"
+# pass_env = "KEEPER_SMTP_PASS"
+# from = "keeper@example.com"
+# to = "you@example.com"      # or ["a@x.com", "b@y.com"]
+# tls = true                  # true = STARTTLS (or "ssl" to force implicit TLS)
+
+[telegram]
+# Optional Telegram alerts. Best-effort.
+# bot_token_env = "KEEPER_TG_TOKEN"
+# chat_id = "123456789"
+
+[daemon]
+# Only used with --daemon: sleep interval between passes, plus random jitter.
+interval_seconds = 1800
+jitter_seconds = 300
+
+[tx]
+gas_limit = 25000000          # HARDCODED per the contract's keeper recipe
+raised_gas_limit = 30000000   # used once after an InsufficientGas revert
+max_rewards_per_tx = 15       # rewardAll(_maxRewards) bound
+wait_seconds = 90             # receipt wait before a fee-bumped rebroadcast
+rebroadcast_retries = 3       # same-nonce rebroadcasts before TX_STUCK alert
+fee_bump_percent = 25         # fee bump per rebroadcast
+cost_margin = 1.5             # balance check margin over gas_limit * gasPrice
+
+[scan]
+chunk = 2000000               # eth_getLogs block range per request (adaptive: halves
+min_chunk = 50000             # on provider errors down to min_chunk, grows back)

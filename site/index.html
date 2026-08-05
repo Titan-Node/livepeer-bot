@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="livepeer.bot — a shared, immutable LIP-118 reward-calling service for Livepeer orchestrators on Arbitrum One. Point setRewardCaller at it once and your orchestrator key stays cold.">
+<title>livepeer.bot — cold keys, called rewards</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230B0F0E'/%3E%3Ccircle cx='32' cy='32' r='17' fill='none' stroke='%2300EB88' stroke-width='5'/%3E%3Ccircle cx='32' cy='32' r='6' fill='%2300EB88'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#0B0F0E;
+    --surface:#111614;
+    --surface-2:#0E1311;
+    --border:#1E2925;
+    --border-strong:#2A3A33;
+    --text:#E9F0EC;
+    --muted:#94A49C;
+    --accent:#00EB88;
+    --accent-soft:rgba(0,235,136,.12);
+    --accent-glow:rgba(0,235,136,.30);
+    --danger:#F0B45A;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg);
+    background-image:radial-gradient(1100px 520px at 72% -120px, rgba(0,235,136,.075), transparent 62%);
+    color:var(--text);
+    font-family:var(--sans);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{width:min(1060px,92%);margin:0 auto}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+  code{font-family:var(--mono);overflow-wrap:anywhere}
+
+  /* ---------- header ---------- */
+  header{
+    border-bottom:1px solid var(--border);
+    background:rgba(11,15,14,.85);
+  }
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:1rem 0}
+  .wordmark{display:flex;align-items:center;gap:.55rem;font-weight:700;letter-spacing:-.01em;color:var(--text);font-size:1.05rem}
+  .wordmark:hover{text-decoration:none}
+  .wordmark svg{display:block}
+  .wordmark .dot{color:var(--accent)}
+  .nav-links{display:flex;gap:1.4rem;font-size:.92rem}
+  .nav-links a{color:var(--muted)}
+  .nav-links a:hover{color:var(--accent);text-decoration:none}
+
+  /* ---------- shared ---------- */
+  section{padding:4.2rem 0}
+  .eyebrow{
+    font-family:var(--mono);font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent);margin-bottom:.9rem;
+  }
+  h1{font-size:clamp(2rem,5.4vw,3.3rem);line-height:1.12;letter-spacing:-.025em;font-weight:750}
+  h2{font-size:clamp(1.5rem,3.4vw,2.1rem);letter-spacing:-.02em;margin-bottom:1rem}
+  h3{font-size:1.06rem;letter-spacing:-.01em}
+  .lead{color:var(--muted);font-size:1.06rem;max-width:44rem}
+  .card{
+    background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.35rem 1.4rem;
+  }
+  .todo{
+    border-bottom:1px dashed var(--danger);
+    cursor:help;
+  }
+  .tag-todo{
+    display:inline-block;font-family:var(--mono);font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--danger);border:1px solid rgba(240,180,90,.45);border-radius:99px;
+    padding:.05rem .45rem;margin-left:.4rem;vertical-align:middle;
+  }
+
+  /* ---------- buttons ---------- */
+  .btn{
+    display:inline-block;font-weight:650;font-size:.95rem;border-radius:10px;
+    padding:.72rem 1.25rem;border:1px solid transparent;transition:box-shadow .18s,background .18s;
+  }
+  .btn:hover{text-decoration:none}
+  .btn-primary{background:var(--accent);color:#04140C}
+  .btn-primary:hover{box-shadow:0 0 26px var(--accent-glow)}
+  .btn-ghost{border-color:var(--border-strong);color:var(--text)}
+  .btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+
+  /* ---------- code blocks + copy ---------- */
+  .cmd{
+    position:relative;background:var(--surface-2);border:1px solid var(--border);border-radius:12px;
+    margin:1rem 0;
+  }
+  .cmd pre{padding:1rem 1.1rem;overflow-x:auto}
+  .cmd code{font-size:.85rem;line-height:1.65;color:#CFE6DA;white-space:pre}
+  .cmd .c-com{color:#5D6F67}
+  .cmd .c-arg{color:var(--accent)}
+  .copy-btn{
+    display:none;position:absolute;top:.55rem;right:.55rem;
+    font-family:var(--mono);font-size:.72rem;letter-spacing:.04em;
+    color:var(--muted);background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;
+    padding:.32rem .6rem;cursor:pointer;transition:color .15s,border-color .15s;
+    align-items:center;gap:.3rem;
+  }
+  .js .copy-btn{display:inline-flex}
+  .copy-btn:hover{color:var(--accent);border-color:var(--accent)}
+  .copy-btn.ok{color:#04140C;background:var(--accent);border-color:var(--accent)}
+
+  /* ---------- hero ---------- */
+  .hero{padding:4.2rem 0 4.6rem}
+  .hero .lead{margin:1.4rem 0 1.6rem}
+  .hero-ctas{display:flex;gap:.8rem;flex-wrap:wrap}
+  .audit-line{margin-top:1.6rem;font-size:.88rem;color:var(--muted)}
+  .audit-line strong{color:var(--text);font-weight:650}
+
+  /* ---------- the "point here" card ---------- */
+  .pointer-card{
+    position:relative;
+    margin:2.1rem 0 .4rem;
+    background:linear-gradient(180deg, rgba(0,235,136,.10), rgba(0,235,136,.02) 55%), var(--surface);
+    border:1px solid rgba(0,235,136,.5);
+    border-radius:18px;
+    padding:1.9rem 2.1rem;
+    animation:cardPulse 2.8s ease-in-out infinite;
+  }
+  @keyframes cardPulse{
+    0%,100%{
+      box-shadow:0 0 16px rgba(0,235,136,.16), 0 0 64px rgba(0,235,136,.09);
+      border-color:rgba(0,235,136,.45);
+    }
+    50%{
+      box-shadow:0 0 34px rgba(0,235,136,.42), 0 0 120px rgba(0,235,136,.20);
+      border-color:rgba(0,235,136,.9);
+    }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .pointer-card{animation:none;box-shadow:0 0 28px var(--accent-glow)}
+  }
+  .pointer-label{
+    font-family:var(--mono);font-size:clamp(.8rem,1.8vw,.95rem);letter-spacing:.16em;text-transform:uppercase;
+    color:var(--accent);margin-bottom:.75rem;
+  }
+  .pointer-row{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+  .pointer-addr{
+    font-family:var(--mono);
+    font-size:clamp(1rem,2.6vw,1.45rem);
+    font-weight:600;line-height:1.35;color:var(--text);
+    overflow-wrap:anywhere;
+    text-shadow:0 0 18px rgba(0,235,136,.25);
+  }
+  .pointer-card .copy-btn{
+    position:static;margin-left:auto;
+    font-size:.85rem;padding:.55rem 1.05rem;border-radius:10px;
+    color:#04140C;background:var(--accent);border-color:var(--accent);font-weight:650;
+  }
+  .pointer-card .copy-btn:hover{box-shadow:0 0 22px var(--accent-glow);color:#04140C}
+  .pointer-sub{margin-top:.95rem;color:var(--muted);font-size:.95rem;max-width:44rem}
+  .pointer-sub strong{color:var(--text)}
+
+  /* ---------- steps diagram ---------- */
+  .steps{display:flex;align-items:stretch;gap:.6rem;margin-top:2rem}
+  .step{flex:1;display:flex;flex-direction:column;gap:.6rem;position:relative}
+  .step-top{display:flex;align-items:center;justify-content:space-between}
+  .step-num{
+    font-family:var(--mono);font-size:.78rem;color:var(--accent);
+    border:1px solid rgba(0,235,136,.4);border-radius:99px;padding:.1rem .6rem;
+  }
+  .step-icon{width:46px;height:46px;color:var(--accent)}
+  .step p{color:var(--muted);font-size:.93rem}
+  .step .mini{
+    font-family:var(--mono);font-size:.78rem;color:var(--accent);background:var(--accent-soft);
+    border-radius:8px;padding:.35rem .6rem;overflow-wrap:anywhere;width:fit-content;max-width:100%;
+  }
+  .step-arrow{flex:none;align-self:center;width:26px;height:26px;color:var(--border-strong)}
+  .flow-caption{
+    margin-top:1.2rem;font-family:var(--mono);font-size:.78rem;color:var(--muted);
+    overflow-x:auto;white-space:nowrap;padding-bottom:.3rem;
+  }
+  .flow-caption b{color:var(--accent);font-weight:600}
+
+  /* ---------- trust grid ---------- */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1.8rem}
+  .grid .card h3{margin-bottom:.45rem;display:flex;align-items:center;gap:.5rem}
+  .grid .card h3 svg{flex:none;color:var(--accent)}
+  .grid .card p{color:var(--muted);font-size:.92rem}
+  .grid .card code{font-size:.82rem;color:var(--text)}
+  .verify-strip{
+    margin-top:1.4rem;border:1px solid rgba(0,235,136,.28);background:var(--accent-soft);
+    border-radius:12px;padding:1rem 1.2rem;font-size:.93rem;color:var(--text);
+  }
+
+  /* ---------- tables ---------- */
+  .table-wrap{overflow-x:auto;margin:1rem 0}
+  table{border-collapse:collapse;width:100%;font-size:.9rem;min-width:480px}
+  th,td{text-align:left;padding:.6rem .8rem;border-bottom:1px solid var(--border)}
+  th{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  td{color:var(--text)}
+  td.dim{color:var(--muted)}
+
+  .note{
+    border-left:2px solid var(--accent);padding:.15rem 0 .15rem 1rem;margin:1.1rem 0;
+    color:var(--muted);font-size:.92rem;
+  }
+  .note strong{color:var(--text)}
+
+  /* ---------- footer ---------- */
+  footer{border-top:1px solid var(--border);padding:3rem 0 3.4rem;margin-top:2rem}
+  .foot-grid{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:2rem}
+  .foot-grid h3{font-size:.8rem;font-family:var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.8rem}
+  .foot-grid ul{list-style:none}
+  .foot-grid li{margin:.45rem 0;font-size:.92rem}
+  .disclaimer{margin-top:2.2rem;font-size:.8rem;color:var(--muted);max-width:52rem}
+
+  /* ---------- responsive ---------- */
+  @media (max-width:900px){
+    .grid{grid-template-columns:repeat(2,1fr)}
+    .foot-grid{grid-template-columns:1fr 1fr}
+    .steps{flex-direction:column}
+    .step-arrow{transform:rotate(90deg);margin:.1rem auto}
+  }
+  @media (max-width:560px){
+    section{padding:3rem 0}
+    .hero{padding:3.4rem 0}
+    .grid{grid-template-columns:1fr}
+    .foot-grid{grid-template-columns:1fr}
+    .nav-links{gap:.9rem;font-size:.85rem}
+    .nav-links a.hide-sm{display:none}
+    .cmd code{font-size:.78rem}
+    .pointer-card{padding:1.3rem 1.2rem}
+    .pointer-row{flex-direction:column;align-items:flex-start;gap:.7rem}
+    .pointer-card .copy-btn{margin-left:0}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="wordmark" href="#top" aria-label="livepeer.bot home">
+      <svg width="22" height="22" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#0B0F0E" stroke="#1E2925"/><circle cx="32" cy="32" r="17" fill="none" stroke="#00EB88" stroke-width="5"/><circle cx="32" cy="32" r="6" fill="#00EB88"/></svg>
+      livepeer<span class="dot">.bot</span>
+    </a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="#how">How it works</a>
+      <a href="#trust">Trust</a>
+      <a href="#join">Join</a>
+      <a href="#keeper" class="hide-sm">Keeper</a>
+      <a href="#links" class="hide-sm">Links</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ================================================== hero -->
+  <section class="hero">
+    <div class="wrap">
+      <p class="eyebrow">LIP-118 · Arbitrum One · shared reward caller</p>
+      <h1>Your orchestrator keys stay cold.<br>Your rewards get called. Every round.</h1>
+
+      <div class="pointer-card" data-copy-root>
+        <p class="pointer-label">Point your reward caller to</p>
+        <div class="pointer-row">
+          <code class="pointer-addr todo" data-todo="contract-address" title="Placeholder — the deployed address will be published here after the canary run">&lt;REWARD_CALLER_ADDRESS — TBD, deploying after canary&gt;</code>
+          <button class="copy-btn" type="button" aria-label="Copy contract address">Copy address</button>
+        </div>
+        <p class="pointer-sub">
+          One <code>setRewardCaller</code> transaction from your orchestrator wallet — via the
+          <strong>go-livepeer</strong> CLI or any signer — then the key goes back to cold storage.
+          <a href="#join">Full instructions&nbsp;↓</a>
+        </p>
+      </div>
+
+      <p class="lead">
+        livepeer.bot runs <strong>LivepeerRewardCaller</strong> — one immutable contract that makes the
+        daily <code>reward()</code> call for every Livepeer orchestrator who points
+        <code>setRewardCaller</code> at it. Subscribe once, put the key back in cold storage, done.
+      </p>
+      <div class="hero-ctas">
+        <a class="btn btn-primary" href="#join">Join in one transaction</a>
+        <a class="btn btn-ghost" href="#trust">Read the trust model</a>
+      </div>
+      <p class="audit-line">
+        <strong>86 tests green</strong>, including a mainnet-fork suite run against the live LIP-118
+        deployment on Arbitrum One · source &amp; tests on
+        <a href="https://github.com/Titan-Node/livepeer-bot">GitHub</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- ================================================== problem -->
+  <section id="problem">
+    <div class="wrap">
+      <p class="eyebrow">01 · The problem</p>
+      <h2>The last hot key</h2>
+      <p class="lead">
+        Livepeer pays orchestrators through a <code>reward()</code> call that must land once per round —
+        roughly every 21 hours, forever. Before LIP-118 that call had to come from the orchestrator key
+        itself, so the key that controls your stake sat hot on a server around the clock for one routine
+        transaction a day.
+      </p>
+      <p class="lead" style="margin-top:1rem">
+        <a href="https://github.com/livepeer/LIPs/blob/master/LIPs/LIP-118.md">LIP-118</a> fixes this:
+        <code>setRewardCaller(addr)</code> delegates exactly the reward call — nothing else — to an address
+        you choose. livepeer.bot is that address, shared by everyone: one contract, one keeper, every
+        subscriber's reward called each round, no coordination required.
+      </p>
+    </div>
+  </section>
+
+  <!-- ================================================== how it works -->
+  <section id="how">
+    <div class="wrap">
+      <p class="eyebrow">02 · How it works</p>
+      <h2>Three steps, one of them yours</h2>
+
+      <div class="steps">
+        <div class="step card">
+          <div class="step-top">
+            <svg class="step-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="13" cy="27" r="6"/>
+              <path d="M19 27h22M35 27v7M41 27v5"/>
+              <path d="M38 5v12M33 8l10 6M43 8l-10 6"/>
+            </svg>
+            <span class="step-num">1</span>
+          </div>
+          <h3>Subscribe once</h3>
+          <p>From your orchestrator key, one transaction on the BondingManager. Then the key goes back to cold storage — it is not needed again.</p>
+          <span class="mini">setRewardCaller(&lt;contract&gt;)</span>
+        </div>
+
+        <svg class="step-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg>
+
+        <div class="step card">
+          <div class="step-top">
+            <svg class="step-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M40 21a16 16 0 0 0-27-8.5"/>
+              <path d="M13 5v8h8"/>
+              <path d="M8 27a16 16 0 0 0 27 8.5"/>
+              <path d="M35 43v-8h-8"/>
+            </svg>
+            <span class="step-num">2</span>
+          </div>
+          <h3>Anyone sweeps, every round</h3>
+          <p>A keeper bot (we run one), a cron job, or a stranger calls the contract. It initializes the round if needed, walks the active pool, and attempts reward for every subscriber not yet rewarded.</p>
+          <span class="mini">rewardAll(15, 0)</span>
+        </div>
+
+        <svg class="step-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg>
+
+        <div class="step card">
+          <div class="step-top">
+            <svg class="step-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="22" cy="28" r="13"/>
+              <path d="M22 20l6.5 8-6.5 8-6.5-8z"/>
+              <path d="M40 6v10M35 11h10"/>
+            </svg>
+            <span class="step-num">3</span>
+          </div>
+          <h3>Protocol mints, exactly as if you called</h3>
+          <p>The BondingManager computes your reward, commission, and delegator shares itself — amounts are fixed at round initialization. Repeats every ~21&nbsp;h.</p>
+          <span class="mini">RewardCallSucceeded ✓</span>
+        </div>
+      </div>
+
+      <p class="flow-caption">
+        your cold key <b>→ setRewardCaller (once)</b> → livepeer.bot contract <b>→ rewardForTranscoderWithHint (every round)</b> → BondingManager mints your LPT
+      </p>
+
+      <p class="note">
+        Repeated or concurrent calls are harmless: the protocol's own <code>lastRewardRound</code> makes every
+        sweep idempotent, already-rewarded orchestrators are skipped, and one failing orchestrator is isolated
+        in <code>try/catch</code> — it never blocks the rest.
+      </p>
+    </div>
+  </section>
+
+  <!-- ================================================== trust -->
+  <section id="trust">
+    <div class="wrap">
+      <p class="eyebrow">03 · Trust model</p>
+      <h2>Built to be boring</h2>
+      <p class="lead">This is the section that should decide it. Everything below is verifiable in ~400 lines of Solidity.</p>
+
+      <div class="grid">
+        <div class="card">
+          <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Immutable, unowned</h3>
+          <p>No owner. No admin. No pause switch. No upgrade hook. The code you audit today is the code that runs forever.</p>
+        </div>
+        <div class="card">
+          <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M6 6l12 12"/></svg>Zero storage, zero funds</h3>
+          <p>The contract keeps no mutable state and never holds LPT or ETH. There is nothing to drain, freeze, or misconfigure.</p>
+        </div>
+        <div class="card">
+          <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/><path d="M9 12l2 2 4-4"/></svg>Delegation grants one power</h3>
+          <p>LIP-118 lets this contract call reward <em>for you</em> — nothing else. Your commission, your delegators' shares, and the amounts are computed by the protocol and fixed at round start. The caller cannot move a single wei.</p>
+        </div>
+        <div class="card">
+          <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21C7 17 4 13.5 4 9.5A4.5 4.5 0 0 1 12 6a4.5 4.5 0 0 1 8 3.5c0 4-3 7.5-8 11.5z"/></svg>You keep control</h3>
+          <p>Your own <code>reward()</code> self-call keeps working — delegation adds a caller, it never locks you out. Opt out any time with <code>setRewardCaller(address(0))</code>.</p>
+        </div>
+        <div class="card">
+          <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M5 10l7-7 7 7"/></svg>Bounded worst case</h3>
+          <p>The worst possible failure is a <em>missed reward call</em> — never loss of stake or funds. And your self-call remains as the backstop for exactly that case.</p>
+        </div>
+        <div class="card">
+          <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 12h6"/></svg>No forced upgrades</h3>
+          <p>If a v2 is ever wanted, it will be a <em>new address</em> that you deliberately re-point to. There is no mechanism by which anyone can migrate you.</p>
+        </div>
+      </div>
+
+      <div class="verify-strip">
+        <strong>Verify it yourself:</strong> 86 tests green, including a mainnet-fork suite against the live
+        LIP-118 target on Arbitrum One (BondingManager target <code>0xbe19…0Bd2</code>, protocol commit
+        <code>ccc82f43</code>) · read the
+        <a href="https://github.com/Titan-Node/livepeer-bot">source &amp; tests</a>
+        · <a href="#" class="todo" data-todo="explorer-contract-url" title="Placeholder — verified-source explorer link published at deploy">verified source on the explorer<span class="tag-todo">soon</span></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================== join -->
+  <section id="join">
+    <div class="wrap">
+      <p class="eyebrow">04 · Join</p>
+      <h2>One transaction from your orchestrator key</h2>
+      <p class="lead">
+        Call <code>setRewardCaller</code> on the Livepeer BondingManager
+        (<code>0x35Bcf3c30594191d53231E4FF333E8A770453e40</code> on Arbitrum One), pointing it at this
+        contract. With Foundry's <code>cast</code> and a Ledger:
+      </p>
+
+      <div class="cmd" data-copy-root>
+        <pre><code>cast send 0x35Bcf3c30594191d53231E4FF333E8A770453e40 \
+  "setRewardCaller(address)" <span class="c-arg">&lt;REWARD_CALLER_ADDRESS&gt;</span> \
+  --rpc-url https://arb1.arbitrum.io/rpc --ledger</code></pre>
+        <button class="copy-btn" type="button" aria-label="Copy join command">Copy</button>
+      </div>
+
+      <p class="note">
+        <strong>Not a cast user?</strong> Any signer works — open the BondingManager's
+        <a href="#" class="todo" data-todo="write-contract-url" title="Placeholder — Blockscout/Arbiscan write-contract deep link published at deploy">write-contract page on the explorer<span class="tag-todo">soon</span></a>
+        (or use a Safe) and call <code>setRewardCaller</code> with the contract address. Then put your key
+        back in the freezer.
+      </p>
+
+      <p class="lead" style="font-size:.98rem;margin-top:1.6rem">Change your mind later? Opt out the same way, any time:</p>
+      <div class="cmd" data-copy-root>
+        <pre><code>cast send 0x35Bcf3c30594191d53231E4FF333E8A770453e40 \
+  "setRewardCaller(address)" 0x0000000000000000000000000000000000000000 \
+  --rpc-url https://arb1.arbitrum.io/rpc --ledger</code></pre>
+        <button class="copy-btn" type="button" aria-label="Copy opt-out command">Copy</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================== keeper -->
+  <section id="keeper">
+    <div class="wrap">
+      <p class="eyebrow">05 · Keep it running</p>
+      <h2>Anyone can trigger it. Anyone can fund it.</h2>
+      <p class="lead">
+        The sweep is permissionless and idempotent — there is no keeper monopoly and no way to trigger it
+        "wrong". If our bot ever disappears, one command keeps every subscriber paid:
+      </p>
+
+      <div class="cmd" data-copy-root>
+        <pre><code><span class="c-com"># once per round (~21 h), from any funded wallet</span>
+cast send <span class="c-arg">&lt;REWARD_CALLER_ADDRESS&gt;</span> "rewardAll(uint256,uint256)" 15 0 \
+  --gas-limit 25000000 --rpc-url https://arb1.arbitrum.io/rpc</code></pre>
+        <button class="copy-btn" type="button" aria-label="Copy keeper command">Copy</button>
+      </div>
+
+      <p class="note">
+        Use the hardcoded 25M gas limit — plain <code>eth_estimateGas</code> does not account for the contract's
+        ≥2.5M per-attempt safety floor. If the sweep is truncated (<code>complete == false</code>), call again;
+        repeat calls are harmless. The full keeper recipe — including the mid-round eviction rescue — lives in
+        the <a href="https://github.com/Titan-Node/livepeer-bot/blob/main/keeper/README.md">keeper docs</a>.
+      </p>
+
+      <h3 style="margin-top:2rem">Redundancy &amp; funding</h3>
+      <div class="table-wrap">
+        <table>
+          <tr><th scope="row" style="width:34%">Keeper script</th>
+              <td><a href="https://github.com/Titan-Node/livepeer-bot/tree/main/keeper">repo /keeper</a> — run your own copy anywhere a cron job runs</td></tr>
+          <tr><th scope="row">Chainlink Automation</th>
+              <td>upkeep <code class="todo" data-todo="chainlink-upkeep-id" title="Placeholder — upkeep ID published after registration">&lt;UPKEEP_ID — TBD&gt;</code> — anyone can top up its LINK balance to extend its runway</td></tr>
+          <tr><th scope="row">Keeper gas wallet</th>
+              <td><code class="todo" data-todo="keeper-donation-address" title="Placeholder — donation address published at launch">&lt;KEEPER_WALLET — published at launch&gt;</code> — ETH donations on Arbitrum One extend the bot's runway; it holds gas money only, never touches rewards</td></tr>
+        </table>
+      </div>
+
+      <h3 style="margin-top:2rem">What it costs (full transparency)</h3>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Scale</th><th>Txs per round</th><th>Approx. cost</th></tr>
+          <tr><td>Launch (~5 subscribers)</td><td class="dim">1 tx, ~4–7M gas</td><td>~$0.15–0.30 / day</td></tr>
+          <tr><td>Entire pool (100 orchestrators)</td><td class="dim">3–7 txs</td><td>~$1–4 / day</td></tr>
+        </table>
+      </div>
+      <p class="lead" style="font-size:.9rem">
+        At Arbitrum's typical ~0.02 gwei gas price. There is no fee and no profit motive — this is
+        infrastructure run as a public good, cheap enough for one person to fund and simple enough for
+        anyone to replace.
+      </p>
+    </div>
+  </section>
+
+  <!-- ================================================== footer -->
+  <footer id="links">
+    <div class="wrap">
+      <div class="foot-grid">
+        <div>
+          <h3>livepeer.bot</h3>
+          <ul>
+            <li><a href="https://github.com/Titan-Node/livepeer-bot">GitHub — contract source &amp; tests</a></li>
+            <li><a href="#" class="todo" data-todo="explorer-contract-url" title="Placeholder — published at deploy">Contract on the explorer<span class="tag-todo">soon</span></a></li>
+            <li><a href="https://github.com/Titan-Node/livepeer-bot/tree/main/keeper">Keeper script (repo /keeper)</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Livepeer</h3>
+          <ul>
+            <li><a href="https://github.com/livepeer/LIPs/blob/master/LIPs/LIP-118.md">LIP-118 — Delegated Reward Calling</a></li>
+            <li><a href="https://explorer.livepeer.org">Livepeer Explorer</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Contract</h3>
+          <ul>
+            <li><code style="font-size:.8rem" class="todo" data-todo="contract-address" title="Placeholder — published after canary">address: TBD</code></li>
+            <li><code style="font-size:.8rem">version: LivepeerRewardCaller/1.0.0</code></li>
+            <li><code style="font-size:.8rem">network: Arbitrum One (42161)</code></li>
+          </ul>
+        </div>
+      </div>
+      <p class="disclaimer">
+        Independent community project. Not affiliated with, or endorsed by, Livepeer Inc. The contract is
+        unaudited by a third-party firm (test suite and mainnet-fork verification linked above); use at your
+        own discretion. Nothing here is financial advice.
+      </p>
+    </div>
+  </footer>
+
+</main>
+
+<script>
+(function () {
+  document.documentElement.className += " js";
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "absolute";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+  document.addEventListener("click", function (e) {
+    var btn = e.target && e.target.closest ? e.target.closest(".copy-btn") : null;
+    if (!btn) return;
+    var root = btn.closest("[data-copy-root]");
+    var code = root && root.querySelector("code");
+    if (!code) return;
+    var text = (code.innerText || code.textContent).replace(/\u00a0/g, " ");
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).catch(function () { fallbackCopy(text); });
+    } else {
+      fallbackCopy(text);
+    }
+    var old = btn.textContent;
+    btn.textContent = "Copied";
+    btn.classList.add("ok");
+    setTimeout(function () {
+      btn.textContent = old;
+      btn.classList.remove("ok");
+    }, 1600);
+  });
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,2 @@
+# reward_keeper.py — Python 3.11+
+web3>=7.0.0,<8
