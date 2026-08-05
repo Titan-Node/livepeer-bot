@@ -91,7 +91,9 @@ contract LivepeerRewardCaller {
 
     /// @notice A delegated reward call landed for `transcoder`.
     /// @param gasUsed Gas consumed by the BondingManager call — feeds ongoing chunk-size calibration.
-    event RewardCallSucceeded(uint256 indexed round, address indexed transcoder, address indexed caller, uint256 gasUsed);
+    event RewardCallSucceeded(
+        uint256 indexed round, address indexed transcoder, address indexed caller, uint256 gasUsed
+    );
 
     /// @notice A delegated reward call reverted AFTER passing every pre-check.
     /// @dev    Pre-checks mirror the protocol's own require conditions, so any occurrence of this
@@ -109,7 +111,12 @@ contract LivepeerRewardCaller {
     /// @param complete  True when the sweep reached the end of the pool/array; false when it was
     ///                  truncated by the gas floor or `_maxRewards` — call again to resume.
     event BatchProcessed(
-        uint256 indexed round, address indexed caller, uint256 processed, uint256 rewarded, uint256 failed, bool complete
+        uint256 indexed round,
+        address indexed caller,
+        uint256 processed,
+        uint256 rewarded,
+        uint256 failed,
+        bool complete
     );
 
     // ------------------------------------------------------- constants / immutables
@@ -316,11 +323,7 @@ contract LivepeerRewardCaller {
     ///         mid-round-deactivated subscribers discovered off-chain, then `rewardFor` whatever
     ///         it returns. Duplicate candidates yield duplicate entries (rewardFor dedups by
     ///         effect: the second occurrence is skipped once lastRewardRound is set).
-    function filterPendingRewardCalls(address[] calldata _candidates)
-        external
-        view
-        returns (address[] memory pending)
-    {
+    function filterPendingRewardCalls(address[] calldata _candidates) external view returns (address[] memory pending) {
         IBondingManager bm = _bondingManager();
         uint256 round = _roundsManager().currentRound();
         uint256 len = _candidates.length;
@@ -432,10 +435,14 @@ contract LivepeerRewardCaller {
     ///      (incl. subcall OOG) are absorbed either way; pre-check [a] runs a typed staticcall
     ///      against the same target first, so a codeless target hard-reverts the entrypoint
     ///      before this vacuous-success path could ever be reached.
-    function _attemptReward(IBondingManager bm, address t, uint256 round, uint256 gasFloor, address prevHint, address nextHint)
-        private
-        returns (bool ok)
-    {
+    function _attemptReward(
+        IBondingManager bm,
+        address t,
+        uint256 round,
+        uint256 gasFloor,
+        address prevHint,
+        address nextHint
+    ) private returns (bool ok) {
         uint256 fwd = gasFloor - (CALL_GAS_RESERVE + gasFloor / 64);
         uint256 g0 = gasleft();
         // Assembly call with a ZERO-LENGTH output buffer: a high-level `(ok,) = .call(...)`

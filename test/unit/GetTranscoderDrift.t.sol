@@ -51,9 +51,7 @@ contract GetTranscoderDriftTest is UnitBase {
         expected[0] = G1;
         expected[1] = G2;
         assertEq(rc.getPendingRewardCalls(), expected, "pending view silently omits the broken node");
-        assertEq(
-            rc.filterPendingRewardCalls(_arr(G1, X, G2)), expected, "filter view silently omits the broken node"
-        );
+        assertEq(rc.filterPendingRewardCalls(_arr(G1, X, G2)), expected, "filter view silently omits the broken node");
     }
 
     // ---------------------------------------------------------------- getTranscoder REVERTS

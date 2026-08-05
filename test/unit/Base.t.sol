@@ -23,10 +23,17 @@ abstract contract UnitBase is Test {
 
     // Local redeclarations of the contract's events for vm.expectEmit.
     event RoundInitialized(uint256 indexed round, address indexed caller);
-    event RewardCallSucceeded(uint256 indexed round, address indexed transcoder, address indexed caller, uint256 gasUsed);
+    event RewardCallSucceeded(
+        uint256 indexed round, address indexed transcoder, address indexed caller, uint256 gasUsed
+    );
     event RewardCallFailed(uint256 indexed round, address indexed transcoder, address indexed caller, bytes revertData);
     event BatchProcessed(
-        uint256 indexed round, address indexed caller, uint256 processed, uint256 rewarded, uint256 failed, bool complete
+        uint256 indexed round,
+        address indexed caller,
+        uint256 processed,
+        uint256 rewarded,
+        uint256 failed,
+        bool complete
     );
 
     MockController internal controller;

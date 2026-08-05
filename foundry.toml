@@ -26,5 +26,17 @@ optimizer_runs = 10000
 via_ir = true
 test = "test/fork"
 
+# CI runs the default (unit) suite; fork tests need an RPC and run locally/nightly.
+[profile.ci]
+src = "src"
+out = "out"
+libs = ["lib"]
+solc_version = "0.8.24"
+evm_version = "shanghai"
+optimizer = true
+optimizer_runs = 10000
+via_ir = true
+test = "test/unit"
+
 [fmt]
 line_length = 120

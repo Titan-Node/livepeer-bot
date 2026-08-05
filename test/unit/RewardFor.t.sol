@@ -122,7 +122,9 @@ contract RewardForTest is UnitBase {
 
         address[] memory list = _arr(G, F);
         vm.expectEmit(true, true, true, true, address(rc));
-        emit RewardCallFailed(ROUND, F, address(this), abi.encodeWithSignature("Error(string)", "MOCK_REWARD_STRING_FAILURE"));
+        emit RewardCallFailed(
+            ROUND, F, address(this), abi.encodeWithSignature("Error(string)", "MOCK_REWARD_STRING_FAILURE")
+        );
         vm.expectEmit(true, true, true, true, address(rc));
         emit BatchProcessed(ROUND, address(this), 2, 1, 1, true);
         (uint256 rewarded, uint256 failed, uint256 processed) = rc.rewardFor(list, _zeros(2), _zeros(2), 0);
