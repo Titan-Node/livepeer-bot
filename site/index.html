@@ -262,7 +262,7 @@
       <div class="pointer-card" data-copy-root>
         <p class="pointer-label">Point your reward caller to</p>
         <div class="pointer-row">
-          <code class="pointer-addr todo" data-todo="contract-address" title="Placeholder — the deployed address will be published here after the canary run">&lt;REWARD_CALLER_ADDRESS — TBD, deploying after canary&gt;</code>
+          <code class="pointer-addr">0x2F5901C6D8EB0181FA4f2b75EAAd0344a916fdDE</code>
           <button class="copy-btn" type="button" aria-label="Copy contract address">Copy address</button>
         </div>
         <p class="pointer-sub">
@@ -417,7 +417,7 @@
         (<a href="https://github.com/Titan-Node/livepeer-bot/tree/main/audits">reports &amp; responses</a>)
         · read the
         <a href="https://github.com/Titan-Node/livepeer-bot">source &amp; tests</a>
-        · <a href="#" class="todo" data-todo="explorer-contract-url" title="Placeholder — verified-source explorer link published at deploy">verified source on the explorer<span class="tag-todo">soon</span></a>
+        · <a href="https://arbitrum.blockscout.com/address/0x2F5901C6D8EB0181FA4f2b75EAAd0344a916fdDE?tab=contract">verified source on the explorer</a>
       </div>
     </div>
   </section>
@@ -435,14 +435,14 @@
 
       <div class="cmd" data-copy-root>
         <pre><code>cast send 0x35Bcf3c30594191d53231E4FF333E8A770453e40 \
-  "setRewardCaller(address)" <span class="c-arg">&lt;REWARD_CALLER_ADDRESS&gt;</span> \
+  "setRewardCaller(address)" <span class="c-arg">0x2F5901C6D8EB0181FA4f2b75EAAd0344a916fdDE</span> \
   --rpc-url https://arb1.arbitrum.io/rpc --ledger</code></pre>
         <button class="copy-btn" type="button" aria-label="Copy join command">Copy</button>
       </div>
 
       <p class="note">
         <strong>Not a cast user?</strong> Any signer works — open the BondingManager's
-        <a href="#" class="todo" data-todo="write-contract-url" title="Placeholder — Blockscout/Arbiscan write-contract deep link published at deploy">write-contract page on the explorer<span class="tag-todo">soon</span></a>
+        <a href="https://arbitrum.blockscout.com/address/0x35Bcf3c30594191d53231E4FF333E8A770453e40?tab=write_proxy">write-contract page on the explorer</a>
         (or use a Safe) and call <code>setRewardCaller</code> with the contract address. Then put your key
         back in the freezer.
       </p>
@@ -469,7 +469,7 @@
 
       <div class="cmd" data-copy-root>
         <pre><code><span class="c-com"># once per round (~21 h), from any funded wallet</span>
-cast send <span class="c-arg">&lt;REWARD_CALLER_ADDRESS&gt;</span> "rewardAll(uint256,uint256)" 15 0 \
+cast send <span class="c-arg">0x2F5901C6D8EB0181FA4f2b75EAAd0344a916fdDE</span> "rewardAll(uint256,uint256)" 15 0 \
   --gas-limit 25000000 --rpc-url https://arb1.arbitrum.io/rpc</code></pre>
         <button class="copy-btn" type="button" aria-label="Copy keeper command">Copy</button>
       </div>
@@ -532,7 +532,7 @@ cast send <span class="c-arg">&lt;REWARD_CALLER_ADDRESS&gt;</span> "rewardAll(ui
         <div>
           <h3>Contract</h3>
           <ul>
-            <li><code style="font-size:.8rem" class="todo" data-todo="contract-address" title="Placeholder — published after canary">address: TBD</code></li>
+            <li><code style="font-size:.8rem">0x2F5901C6D8EB0181FA4f2b75EAAd0344a916fdDE</code></li>
             <li><code style="font-size:.8rem">version: LivepeerRewardCaller/1.0.0</code></li>
             <li><code style="font-size:.8rem">network: Arbitrum One (42161)</code></li>
           </ul>

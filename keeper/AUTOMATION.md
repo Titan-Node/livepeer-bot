@@ -7,9 +7,10 @@ every sweep is idempotent (the protocol's `lastRewardRound` makes repeat and con
 calls skip for ~25k gas each), so extra callers can only ever waste pennies, never
 break anything.
 
-> **Placeholders.** The contract is **not yet deployed**. Every occurrence of
-> `<REWARD_CALLER_ADDRESS>` and `<UPKEEP_ID>` below is a TODO placeholder and will be
-> replaced with the real values after deployment and upkeep registration.
+> **Deployed.** LivepeerRewardCaller v1 is live on Arbitrum One at
+> `0x2F5901C6D8EB0181FA4f2b75EAAd0344a916fdDE`
+> ([verified source](https://arbitrum.blockscout.com/address/0x2F5901C6D8EB0181FA4f2b75EAAd0344a916fdDE?tab=contract)).
+> `<UPKEEP_ID>` remains a TODO placeholder until the Chainlink upkeep is registered.
 
 ---
 
@@ -81,7 +82,7 @@ and auto-approved: no forms, no gatekeepers.
 | Automation Registry | `0x37D9dC70bfcd8BC77Ec2858836B923c560E891D1` |
 | Automation Registrar | `0x86EFBD0b6736Bed994962f9797049422A3A8E8Ad` |
 | LINK token (ERC-677) | `0xf97f4df75117a78c1A5a0DBb814Af92458539FB4` |
-| Upkeep target | `<REWARD_CALLER_ADDRESS>` — TODO: not yet deployed |
+| Upkeep target | `0x2F5901C6D8EB0181FA4f2b75EAAd0344a916fdDE` (LivepeerRewardCaller v1) |
 | Our upkeep ID | `<UPKEEP_ID>` — TODO: published after registration |
 
 ### Economics — read this before registering
@@ -109,7 +110,7 @@ and auto-approved: no forms, no gatekeepers.
 
 1. Go to [automation.chain.link](https://automation.chain.link), connect a wallet on
    Arbitrum One, choose **Register new upkeep** → **Time-based**.
-2. Target contract: `<REWARD_CALLER_ADDRESS>` (TODO placeholder). If the UI cannot
+2. Target contract: `0x2F5901C6D8EB0181FA4f2b75EAAd0344a916fdDE`. If the UI cannot
    auto-fetch the ABI, paste it from the verified source.
 3. Function: `rewardAll`. Arguments: `_maxRewards = 0`, `_minGasPerCall = 0`.
    `0` (unbounded attempts) is correct **here** because the registered gas limit is
@@ -201,13 +202,13 @@ Anyone can run the sweep from any machine with any funded EOA. The whole job is 
 command, safe to run at any time, any number of times, by any number of people:
 
 ```bash
-cast send <REWARD_CALLER_ADDRESS> "rewardAll(uint256,uint256)" 15 0 \
+cast send 0x2F5901C6D8EB0181FA4f2b75EAAd0344a916fdDE "rewardAll(uint256,uint256)" 15 0 \
   --gas-limit 25000000 \
   --rpc-url https://arb1.arbitrum.io/rpc \
   --private-key <YOUR_KEY>
 ```
 
-(`<REWARD_CALLER_ADDRESS>` is a TODO placeholder until deployment.)
+(Deployed and verified — see the header note for explorer links.)
 
 Semantics worth knowing before you cron this: if the tx cannot afford even one reward
 attempt it **reverts `InsufficientGas`** rather than silently doing nothing — at a

@@ -9,7 +9,8 @@ failover, a primary/backup gas wallet, stuck-tx fee bumping, and SMTP / Telegram
 console alerting.
 
 > The contract address in `config.example.toml` is a **placeholder** — the contract is
-> not deployed yet. Replace `reward_caller` after deployment.
+> deployed: `reward_caller = 0x2F5901C6D8EB0181FA4f2b75EAAd0344a916fdDE` (Arbitrum One,
+> verified on Blockscout) — the example config ships with it filled in.
 
 ## Setup
 

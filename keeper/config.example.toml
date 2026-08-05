@@ -12,7 +12,7 @@ rpc_urls = [
 
 # The deployed LivepeerRewardCaller. PLACEHOLDER — replace after deployment.
 # Override with env KEEPER_REWARD_CALLER.
-reward_caller = "0x0000000000000000000000000000000000000000"  # TODO: deployed address
+reward_caller = "0x2F5901C6D8EB0181FA4f2b75EAAd0344a916fdDE"  # LivepeerRewardCaller v1 (Arbitrum One)
 
 # Livepeer Controller on Arbitrum One (registry + pause switch). Leave as is.
 controller = "0xD8E8328501E9645d16Cf49539efC04f734606ee4"

@@ -8,16 +8,15 @@ Before publishing, replace the placeholders (search for `data-todo`):
 
 | `data-todo` value | Replace with |
 |---|---|
-| `contract-address` | the deployed LivepeerRewardCaller address (2 places + footer) |
+| ~~`contract-address`~~ | DONE — `0x2F5901C6D8EB0181FA4f2b75EAAd0344a916fdDE` |
 | ~~`repo-url`~~ | DONE — https://github.com/Titan-Node/livepeer-bot |
-| `explorer-contract-url` | verified-source contract page on Blockscout/Arbiscan (2 places) |
-| `write-contract-url` | BondingManager write-contract deep link on the explorer |
+| ~~`explorer-contract-url`~~ | DONE — Blockscout verified-source page |
+| ~~`write-contract-url`~~ | DONE — BondingManager write-proxy on Blockscout |
 | ~~`keeper-script-url` / `keeper-docs-url`~~ | DONE — repo `/keeper` links |
 | `chainlink-upkeep-id` | Chainlink Automation upkeep ID |
 | `keeper-donation-address` | keeper gas-wallet EOA |
 
-Also update the two `<REWARD_CALLER_ADDRESS>` tokens inside the copyable `cast` commands, and
-remove the `<span class="tag-todo">soon</span>` badges as each link goes live.
+The `cast` command address tokens are filled. Remaining `soon` badges: the two rows above.
 
 ## Option A — ENS + IPFS (`livepeerbot.eth` → `livepeerbot.eth.limo`)
 
