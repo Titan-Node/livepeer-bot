@@ -8,9 +8,11 @@ calling to the contract, checks who still needs a reward call, and sends
 failover, a primary/backup gas wallet, stuck-tx fee bumping, and SMTP / Telegram /
 console alerting.
 
-> The contract address in `config.example.toml` is a **placeholder** — the contract is
-> deployed: `reward_caller = 0x2F5901C6D8EB0181FA4f2b75EAAd0344a916fdDE` (Arbitrum One,
-> verified on Blockscout) — the example config ships with it filled in.
+> **Live:** `reward_caller = 0x2F5901C6D8EB0181FA4f2b75EAAd0344a916fdDE` on Arbitrum One
+> (verified on
+> [Arbiscan](https://arbiscan.io/address/0x2F5901C6D8EB0181FA4f2b75EAAd0344a916fdDE#code)
+> and Blockscout) — `config.example.toml` ships with it filled in, so the only thing you
+> must supply is a funded gas wallet.
 
 ## Setup
 
