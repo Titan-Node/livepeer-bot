@@ -26,7 +26,7 @@ callers can only ever waste pennies, never break anything.
 
 | Layer | Who runs it | What it does | Funded by |
 |---|---|---|---|
-| 1. Python keeper | livepeer.bot operator | Full 25M-gas sweeps until done, eviction rescue, alerting | Keeper EOA (donations: `<KEEPER_DONATION_EOA>` — TODO placeholder) |
+| 1. Python keeper | livepeer.bot operator | Full 25M-gas sweeps until done, eviction rescue, alerting | Keeper gas wallet `0x2B6bd98d8dd8ad91a2b7431Df0e8c4ccB1bB35bf` (ETH on Arbitrum One; donations welcome, gas money only) |
 | 2. Community crons | Anyone with an RPC and a few cents | Ad-hoc full sweeps of a permissionless function | The caller (pennies) |
 | 3. Decentralized backstop | — | **Under evaluation post-sunset** (Chainlink CRE Early Access; Reactive Network experiment) | see below |
 
