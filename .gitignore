@@ -22,3 +22,9 @@ keeper/.venv/
 # local orchestrator keystores - NEVER commit
 keystore/
 keeper/run_local.bat
+
+# agent skills (third-party, reinstallable) + CRE local artifacts
+.agents/
+cre/**/node_modules/
+cre/.env
+cre/**/.cre_build_tmp.js

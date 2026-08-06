@@ -1,0 +1,11 @@
+# CRE project settings — livepeer.bot reward sweeper backstop.
+# Targets define RPC endpoints per chain; simulation reads hit these directly.
+staging-settings:
+  rpcs:
+    - chain-name: ethereum-mainnet-arbitrum-1
+      url: https://arb1.arbitrum.io/rpc
+
+production-settings:
+  rpcs:
+    - chain-name: ethereum-mainnet-arbitrum-1
+      url: https://arb1.arbitrum.io/rpc

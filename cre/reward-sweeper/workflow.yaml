@@ -1,0 +1,16 @@
+# CRE workflow settings — livepeer.bot reward sweeper.
+staging-settings:
+  user-workflow:
+    workflow-name: "livepeer-reward-sweeper-staging"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.staging.json"
+    secrets-path: ""
+
+production-settings:
+  user-workflow:
+    workflow-name: "livepeer-reward-sweeper"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.production.json"
+    secrets-path: ""

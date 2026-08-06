@@ -144,8 +144,14 @@ process, from the official migration guide
   Ethereum Mainnet from the org's linked wallet. The community-sustainability property
   this project prizes is gone from the product.
 
-**Status: Early Access requested is the sensible free move; adopt only if approval
-lands AND public billing appears.** Nothing about launch blocks on it.
+**Status (2026-08-05): built and simulating.** A working CRE workflow lives in this
+repo at [`cre/reward-sweeper`](../cre/) — keeper-bot pattern: cron every 4h →
+`getPendingRewardCalls()` read against the live contract → skip when empty →
+signed-report sweep via a receiver bridge (bridge contract not yet deployed; the
+workflow logs intent until it is). Simulation passes against real Arbitrum state
+(`cre workflow simulate reward-sweeper --target staging-settings`). Deployment
+still gated on Early Access approval + public billing; nothing about launch blocks
+on it.
 
 ### What a ~5M-capped firing can and cannot do (applies to CRE's quota)
 

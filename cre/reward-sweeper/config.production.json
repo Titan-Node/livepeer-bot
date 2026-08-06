@@ -1,0 +1,11 @@
+{
+  "schedule": "0 0 */4 * * *",
+  "evms": [
+    {
+      "chainSelectorName": "ethereum-mainnet-arbitrum-1",
+      "rewardCaller": "0x2F5901C6D8EB0181FA4f2b75EAAd0344a916fdDE",
+      "receiver": "0x0000000000000000000000000000000000000000",
+      "gasLimit": "4850000"
+    }
+  ]
+}
