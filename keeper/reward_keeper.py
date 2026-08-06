@@ -1210,8 +1210,12 @@ def main() -> None:
     mode.add_argument("--daemon", action="store_true",
                       help="run forever: one pass every daemon.interval_seconds + jitter")
     ap.add_argument("--verbose", action="store_true", help="debug logging")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="simulate everything, send nothing (same as KEEPER_DRY_RUN=1)")
     args = ap.parse_args()
     VERBOSE = args.verbose
+    if args.dry_run:
+        os.environ["KEEPER_DRY_RUN"] = "1"  # read by Config; flag wins over the file
 
     try:
         cfg = load_config(args.config)
