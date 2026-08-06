@@ -22,13 +22,14 @@ The `cast` command address tokens are filled. Remaining `soon` badge: the donati
 
 Decision 2026-08-06: the page should stay easy to edit as the automation story evolves
 (CRE, new backstops), so it lives on **branch-based GitHub Pages** — no Actions, no runners,
-no approvals: GitHub itself serves this `docs/` folder from `main`
-(Settings → Pages → Source: *Deploy from a branch* → `main` / `/docs`). The folder is named
-`docs/` because branch-based Pages only serves `/` or `/docs`. `.nojekyll` skips Jekyll
-processing; `CNAME` holds the custom domain. (An Actions-based deploy was tried first and
-abandoned — deploy-key pushes didn't trigger runs and environment approvals wedged the queue.)
+no approvals: GitHub itself serves the repo **root** from `main`
+(Settings → Pages → Source: *Deploy from a branch* → `main` / `/ (root)` — the setting that
+was already active when this landed). `index.html` at the root IS the site (single
+self-contained file, CSS/SVG inlined); `.nojekyll` skips Jekyll processing; `CNAME` holds the
+custom domain. (An Actions-based deploy was tried first and abandoned — deploy-key pushes
+didn't trigger runs and environment approvals wedged the queue.)
 
-**Updating the site = edit `docs/index.html`, commit, push.** Nothing else.
+**Updating the site = edit `index.html`, commit, push.** Nothing else.
 
 - **Custom domain (Namecheap → GitHub Pages):** in Namecheap → Domain List → `livepeer.bot`
   → Advanced DNS, remove any parking records, then add:
