@@ -18,7 +18,33 @@ Before publishing, replace the placeholders (search for `data-todo`):
 
 The `cast` command address tokens are filled. Remaining `soon` badge: the donation row.
 
-## Option A — ENS + IPFS (`livepeerbot.eth` → `livepeerbot.eth.limo`)
+## Hosting (chosen): GitHub Pages + the livepeer.bot domain
+
+Decision 2026-08-06: the page should stay easy to edit as the automation story evolves
+(CRE, new backstops), so it deploys via **GitHub Pages** — every push to `main` that touches
+`site/` publishes automatically through `.github/workflows/pages.yml`
+(`actions/upload-pages-artifact` on the `site/` folder; Pages auto-enabled by the workflow).
+
+- Interim URL: `https://titan-node.github.io/livepeer-bot/`
+- **Custom domain (Namecheap → GitHub Pages):** in Namecheap → Domain List → `livepeer.bot`
+  → Advanced DNS, remove any parking records, then add:
+  | Type | Host | Value |
+  |---|---|---|
+  | A | `@` | `185.199.108.153` |
+  | A | `@` | `185.199.109.153` |
+  | A | `@` | `185.199.110.153` |
+  | A | `@` | `185.199.111.153` |
+  | CNAME | `www` | `titan-node.github.io.` |
+- Once DNS is set, commit a `site/CNAME` file containing exactly `livepeer.bot` — the deploy
+  workflow ships it, GitHub picks up the domain, and (after the certificate provisions,
+  minutes to ~1 h) enable **Enforce HTTPS** under Settings → Pages.
+
+**Updating:** `git push` — that's it.
+
+The options below are kept for reference; the page is a single self-contained file with zero
+external requests, so an ENS+IPFS mirror can be added at any time without changes.
+
+## Option A (future mirror) — ENS + IPFS (`livepeerbot.eth` → `livepeerbot.eth.limo`)
 
 Censorship-resistant and unkillable; fits the trust story of the contract itself.
 
