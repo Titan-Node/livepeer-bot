@@ -14,7 +14,7 @@ Before publishing, replace the placeholders (search for `data-todo`):
 | ~~`write-contract-url`~~ | DONE — BondingManager write-proxy on Blockscout |
 | ~~`keeper-script-url` / `keeper-docs-url`~~ | DONE — repo `/keeper` links |
 | ~~`chainlink-upkeep-id`~~ | OBSOLETE — Chainlink Automation sunset (July 2026) before launch; row replaced with backstop-status text |
-| ~~`keeper-donation-address`~~ | DONE — `0xd6DEa4B2fb4Bb20019cab813fe06F992EC1Fd794` (keeper gas wallet; gas-dust only) |
+| ~~`keeper-donation-address`~~ | DONE — `0x2B6bd98d8dd8ad91a2b7431Df0e8c4ccB1bB35bf` (keeper gas wallet; gas money only) |
 
 All placeholders are filled — the page carries no `soon` badges or `data-todo` markers.
 
