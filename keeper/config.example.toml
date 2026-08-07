@@ -47,7 +47,9 @@ subscribers_static = []
 initial_scan_from_block = 489354275
 
 [wallet]
-# Option A (simplest): raw hex private key in an env var.
+# Option A (simplest): the NAME of the env var that holds the raw hex key — NOT the key itself.
+#   Put the key in the environment, e.g.  export KEEPER_PRIMARY_KEY=0x<64 hex chars>
+#   (systemd: add KEEPER_PRIMARY_KEY=0x... to the service's EnvironmentFile).
 primary_key_env = "KEEPER_PRIMARY_KEY"
 # Option B: geth/UTC keystore file + its password in an env var (uncomment both).
 # primary_keystore = "/path/to/primary.keystore.json"
