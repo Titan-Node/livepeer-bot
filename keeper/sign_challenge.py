@@ -19,6 +19,30 @@ Dependency: eth-account (already present in this repo's keeper venv via web3).
 import getpass
 import json
 import sys
+import types
+
+# Windows Application Control can block bitarray's native DLL. eth_account only
+# needs bitarray for mnemonic/HD-wallet features, which keystore signing never
+# touches -- so if the real module cannot load, install an inert stub that lets
+# the import chain through. Any accidental USE of the stub raises loudly.
+try:
+    import bitarray.util  # noqa: F401  (the DLL the policy actually blocks)
+except ImportError:
+    def _make_stub(name: str) -> types.ModuleType:
+        mod = types.ModuleType(name)
+
+        def _getattr(attr: str, _n=name):
+            def _blocked(*_a, **_k):
+                raise RuntimeError(f"{_n}.{attr} is stubbed out (bitarray DLL blocked)")
+            return _blocked
+
+        mod.__dict__["__getattr__"] = _getattr
+        return mod
+
+    if "bitarray" not in sys.modules:
+        sys.modules["bitarray"] = _make_stub("bitarray")
+    sys.modules["bitarray.util"] = _make_stub("bitarray.util")
+    sys.modules["bitarray"].util = sys.modules["bitarray.util"]
 
 from eth_account import Account
 from eth_account.messages import encode_defunct
